@@ -40,6 +40,11 @@ import org.json.JSONObject;
 
 import static android.os.PowerManager.PARTIAL_WAKE_LOCK;
 
+import android.app.NotificationChannel;
+
+public static final String NOTIFICATION_CHANNEL_ID_SERVICE = "de.appplant.cordova.plugin.background";
+public static final String NOTIFICATION_CHANNEL_ID_INFO = "com.package.download_info";
+
 /**
  * Puts the service in a foreground state, where the system considers it to be
  * something the user is actively aware of and thus not a candidate for killing
@@ -123,7 +128,7 @@ public class ForegroundService extends Service {
      * by the OS.
      */
     @SuppressLint("WakelockTimeout")
-    private void keepAwake()
+    /*private void keepAwake()
     {
         JSONObject settings = BackgroundMode.getSettings();
         boolean isSilent    = settings.optBoolean("silent", false);
@@ -138,7 +143,26 @@ public class ForegroundService extends Service {
                 PARTIAL_WAKE_LOCK, "backgroundmode:wakelock");
 
         wakeLock.acquire();
-    }
+    }*/
+    private void keepAwake() {
+       JSONObject settings = BackgroundMode.getSettings();
+       boolean isSilent    = settings.optBoolean("silent", false);
+       if (!isSilent) {
+           if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+               NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+               nm.createNotificationChannel(new NotificationChannel(NOTIFICATION_CHANNEL_ID_SERVICE, "App Service", NotificationManager.IMPORTANCE_DEFAULT));
+               nm.createNotificationChannel(new NotificationChannel(NOTIFICATION_CHANNEL_ID_INFO, "Download Info", NotificationManager.IMPORTANCE_DEFAULT));
+           } else {
+               startForeground(NOTIFICATION_ID, makeNotification());
+           }
+       }
+
+       PowerManager powerMgr = (PowerManager)
+               getSystemService(POWER_SERVICE);
+       wakeLock = powerMgr.newWakeLock(
+               PowerManager.PARTIAL_WAKE_LOCK, "BackgroundMode");
+       wakeLock.acquire();
+   }
 
     /**
      * Stop background mode.
